@@ -1,0 +1,17 @@
+---
+title: "Overview of the egb246 Package"
+author: "Espi garschina-Bobrow"
+date: "2024-01-30"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Overview}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Testing for vignettes
+
+```{r}
+library(geospaar)
+```
+
