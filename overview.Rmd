@@ -9,11 +9,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-##Summary
+Summary
 
 This project aims to leverage RStudio to comprehensively analyze field size data across Africa, incorporating uncertainty visualization and temporal trends.
 
-##Objectives
+Objectives
 
 Map Uncertainty in Field Sizes: We will create our own uncertainty score and create maps that visually represent this level of uncertainty that is associated with field size measurements at various locations throughout Africa.
 
@@ -21,7 +21,7 @@ Analyze Average Field Size by Region: Calculate and compare the average field si
 
 Track Average Field Size Trends: Use data to investigate how average field sizes have changed throughout Africa. We will analyze time series of locations to find the trends.
 
-##Approach and Method
+Approach and Method
 
 We will possibly use the packages below to gather the data, clean it and prepare it for spatial mapping/calculations. Then each of us will work on one of the three sections of the project.
 
@@ -39,40 +39,60 @@ Readr to read csv
 
 We can use tidyr in case we want to do any pivot_widers or csv manipulations
 
-##Data/code
+Data/code
 
 Our code will be split into three sections. We will need to map uncertainty throughout sites, find average field sizes by region, and find trends in the field sizes over several years.
 A code example for an uncertainty plot:
 
-```{r}
-
-# Demo here:
-  
+```{r, include = FALSE, echo = FALSE}
 library(geospaar)
-# Load dataset
-data(iris)
-# Display summary statistics
-summary(iris)
+districts <- system.file("extdata/districts.geojson", package = "geospaar") %>%   st_read %>% mutate(ID = 1:nrow(.))
+
+wctemp <- geodata::worldclim_country(var = "tavg", res = 2.5, 
+                                     country = "Zambia", path = tempdir())
+
+
+```
+
+```{r}
 # Generate histograms
 hist(iris$Sepal.Length)
 # Box plot
 boxplot(iris$Sepal.Length ~ iris$Species)
 # Scatter plot
 plot(iris$Sepal.Length, iris$Sepal.Width)
-
-
-#This code takes average temps and splits them into three categories to produce a plot of low, medium, and high temperature areas. 
-
-#We will have different code however; we do plan on sectioning our uncertainty in this way. For instance, each pixel is given a 0 if it is field and 1 if it is not field. The code will then average this pixel for every single inputter’s answers. 
-
-#If the resulting number is 0-0.2 or 0.8-1, we will categorize it as certain. If the number is 0.2-0.4 or 0.6-0.8, we will categorize it as uncertain. Finally, if the pixel average answer is 0.4-0.6, we will categorize it as extremely uncertain. 
-
-#This will help look for spatial patterns and examine what possible reasons caused difficulty (the field only covered a portion of the pixel, the field blended in with the landscape, etc.).
-
 ```
 
+Very basic types of plots that could be used in our analysis; histograms, box plots, and scatter plots.
 
-##Timeline
+Below is an example of a possible map plot.
+```{r}
+zamtmean <- mask(app(wctemp, mean), districts)
+trng <- global(zamtmean, range, na.rm = TRUE)
+reclmat <- cbind(c(floor(trng[1]), 20, 24), c(20, 24, ceiling(trng[2])), 1:3)
+
+zamtclass <- classify(x = zamtmean, rcl = unlist(reclmat), include.lowest = TRUE)
+
+cols <- c("blue", "yellow2", "red")
+
+plot_noaxes(zamtclass, legend = FALSE, main = "Average Temps", col = cols,
+            mar = c(0, 0, 2, 2))
+legend(x = "bottomright", inset = 0.168,
+       col = cols, pch = 15, pt.cex = 2,
+       legend = c('Low', 'Medium', 'High'))
+```
+
+This code takes average temps and splits them into three categories to produce a plot of low, medium, and high temperature areas. 
+
+We will have different code however; we do plan on sectioning our uncertainty in this way. For instance, each pixel is given a 0 if it is field and 1 if it is not field. The code will then average this pixel for every single inputter’s answers. 
+
+If the resulting number is 0-0.2 or 0.8-1, we will categorize it as certain. If the number is 0.2-0.4 or 0.6-0.8, we will categorize it as uncertain. Finally, if the pixel average answer is 0.4-0.6, we will categorize it as extremely uncertain. 
+
+This will help look for spatial patterns and examine what possible reasons caused difficulty (the field only covered a portion of the pixel, the field blended in with the landscape, etc.).
+
+
+
+Timeline
 
 All team members will be collaborating on the work for each week
 
@@ -82,7 +102,7 @@ Week 2 (4/22-4/29): Reading in and cleaning data
 
 Week 3 (4/29-5/6): Conducting analysis on each section of the project: Uncertainty of field pixels, average field sizes by region, and looking at averages of yield over time/each year.
 
-##Anticipated outcomes
+Anticipated outcomes
 
 Comparative analysis of field size between regions, highlighting disparities or trends in field sizes
 
