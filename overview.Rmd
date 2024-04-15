@@ -9,11 +9,12 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-Summary
+
+## Summary
 
 This project aims to leverage RStudio to comprehensively analyze field size data across Africa, incorporating uncertainty visualization and temporal trends.
 
-Objectives
+## Objectives
 
 Map Uncertainty in Field Sizes: We will create our own uncertainty score and create maps that visually represent this level of uncertainty that is associated with field size measurements at various locations throughout Africa.
 
@@ -21,7 +22,7 @@ Analyze Average Field Size by Region: Calculate and compare the average field si
 
 Track Average Field Size Trends: Use data to investigate how average field sizes have changed throughout Africa. We will analyze time series of locations to find the trends.
 
-Approach and Method
+## Approach and Method
 
 We will possibly use the packages below to gather the data, clean it and prepare it for spatial mapping/calculations. Then each of us will work on one of the three sections of the project.
 
@@ -39,7 +40,7 @@ Readr to read csv
 
 We can use tidyr in case we want to do any pivot_widers or csv manipulations
 
-Data/code
+## Data/code
 
 Our code will be split into three sections. We will need to map uncertainty throughout sites, find average field sizes by region, and find trends in the field sizes over several years.
 A code example for an uncertainty plot:
@@ -92,7 +93,7 @@ This will help look for spatial patterns and examine what possible reasons cause
 
 
 
-Timeline
+## Timeline
 
 All team members will be collaborating on the work for each week
 
@@ -102,7 +103,7 @@ Week 2 (4/22-4/29): Reading in and cleaning data
 
 Week 3 (4/29-5/6): Conducting analysis on each section of the project: Uncertainty of field pixels, average field sizes by region, and looking at averages of yield over time/each year.
 
-Anticipated outcomes
+## Anticipated outcomes
 
 Comparative analysis of field size between regions, highlighting disparities or trends in field sizes
 
