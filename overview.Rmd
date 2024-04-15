@@ -55,7 +55,7 @@ wctemp <- geodata::worldclim_country(var = "tavg", res = 2.5,
 
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=4, fig.align = "center"}
 # Generate histograms
 hist(iris$Sepal.Length)
 # Box plot
@@ -67,7 +67,7 @@ plot(iris$Sepal.Length, iris$Sepal.Width)
 Very basic types of plots that could be used in our analysis; histograms, box plots, and scatter plots.
 
 Below is an example of a possible map plot.
-```{r}
+```{r, fig.width=6, fig.height=4, fig.align = "center"}
 zamtmean <- mask(app(wctemp, mean), districts)
 trng <- global(zamtmean, range, na.rm = TRUE)
 reclmat <- cbind(c(floor(trng[1]), 20, 24), c(20, 24, ceiling(trng[2])), 1:3)
