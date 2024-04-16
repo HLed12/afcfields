@@ -1,0 +1,48 @@
+---
+title: "uncertainty"
+author: "Harrison Leduc"
+date: "2024-04-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# overarching google drive
+google_drive <- https://drive.google.com/drive/folders/1pDd6akBKQwvTrHjMOE2RvqG2OGR-aW_I?usp=drive_link
+
+#tif's
+images_folder <- https://drive.google.com/drive/folders/1Z6UORgeN7VvLrwpo3I1Tq-iPVlOOYo_z?usp=sharing
+labels_folder <- https://drive.google.com/drive/folders/1ApI1Zq58_KO0Bkk2MQgRykQ0MbAxPcQT?usp=drive_link
+
+#csv's
+label_catalog_filtered <- https://drive.google.com/file/d/1lbz2yOydB-Nj3jham2LGY-pTunsP_Mh1/view?usp=sharing
+label_catalog_allclasses <- https://drive.google.com/file/d/1vjHJR_B8WLDWenIPwMFeVdnEuoIXXeXS/view?usp=sharing
+
+
+# possibly important?
+# parquet's (?)
+mapped_fields_final <- https://drive.google.com/file/d/1gLKmUyi7EUCD1Y702zLayl4rRcIV5Nki/view?usp=sharing
+```
+
+Should we download them into a folder called "data" on the repository, then use
+calls like this:
+
+```{r}
+library(afcfields_)
+districts <- system.file("extdata/districts.geojson", package = "geospaar") %>%   st_read %>% mutate(ID = 1:nrow(.))
+```
+
+But we can't do that since we aren't making this as a package... right?
+
+
+```{r}
+# Possible approach for the CSV's
+farmers_alb <- read_csv(system.file("extdata/farmer_spatial.csv", package = "geospaar")) %>% 
+  distinct(uuid, x, y, season) %>% 
+  st_as_sf(x = ., coords = c("x", "y"), crs = 4326) %>%
+  st_transform(x = ., crs = st_crs(roads))
+farmers_alb
+```
