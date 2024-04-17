@@ -26,19 +26,19 @@ Track Average Field Size Trends: Use data to investigate how average field sizes
 
 We will possibly use the packages below to gather the data, clean it and prepare it for spatial mapping/calculations. Then each of us will work on one of the three sections of the project.
 
-Sfarrow package will be used to open geoparquet polygons as sf objects
+* Sfarrow package will be used to open geoparquet polygons as sf objects
 
-Terra package to read, write, analyze and model our spatial data. As well as for Intersect, buffer, and creating vectors.
+* Terra package to read, write, analyze and model our spatial data. As well as for Intersect, buffer, and creating vectors.
 
-Ggplot2 for plotting
+* Ggplot2 for plotting
 
-Sf for supporting spatial vector data, used to read write and convert projections.
+* Sf for supporting spatial vector data, used to read write and convert projections.
 
-Dplyr for filtering and manipulations
+* Dplyr for filtering and manipulations
 
-Readr to read csv
+* Readr to read csv
 
-We can use tidyr in case we want to do any pivot_widers or csv manipulations
+* We can use tidyr in case we want to do any pivot_widers or csv manipulations
 
 ## Data/code
 
