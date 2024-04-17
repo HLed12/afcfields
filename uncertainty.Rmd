@@ -45,4 +45,6 @@ farmers_alb <- read_csv(system.file("extdata/farmer_spatial.csv", package = "geo
   st_as_sf(x = ., coords = c("x", "y"), crs = 4326) %>%
   st_transform(x = ., crs = st_crs(roads))
 farmers_alb
+
+#t
 ```
