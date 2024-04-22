@@ -9,42 +9,151 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+Data and Insight
 ```{r}
-# overarching google drive
-google_drive <- https://drive.google.com/drive/folders/1pDd6akBKQwvTrHjMOE2RvqG2OGR-aW_I?usp=drive_link
+library(dplyr)
+library(sf)
+library(terra)
+here
+data_dir <- here::here("external/afcdata")
+data_dir
+# here::here gives "/home/rstudio/afcfields_/external/afcdata"
 
-#tif's
-images_folder <- https://drive.google.com/drive/folders/1Z6UORgeN7VvLrwpo3I1Tq-iPVlOOYo_z?usp=sharing
-labels_folder <- https://drive.google.com/drive/folders/1ApI1Zq58_KO0Bkk2MQgRykQ0MbAxPcQT?usp=drive_link
+# temporary work around
+data_dir <- file.path("~/external/afcdata")
+data_dir
 
-#csv's
-label_catalog_filtered <- https://drive.google.com/file/d/1lbz2yOydB-Nj3jham2LGY-pTunsP_Mh1/view?usp=sharing
-label_catalog_allclasses <- https://drive.google.com/file/d/1vjHJR_B8WLDWenIPwMFeVdnEuoIXXeXS/view?usp=sharing
+flds <- sfarrow::st_read_parquet(
+  file.path(data_dir, "mapped_fields_final.parquet"))
 
+ctlg <- readr::read_csv(
+  file.path(data_dir, "label_catalog_allclasses.csv"))
 
-# possibly important?
-# parquet's (?)
-mapped_fields_final <- https://drive.google.com/file/d/1gLKmUyi7EUCD1Y702zLayl4rRcIV5Nki/view?usp=sharing
+names(ctlg)
+
+length(unique(ctlg$assignment_id)) == nrow(ctlg)
+
+length(unique(ctlg$name))
+
 ```
 
-Should we download them into a folder called "data" on the repository, then use
-calls like this:
-
+Spatial Features/Characteristics
 ```{r}
-library(afcfields_)
-districts <- system.file("extdata/districts.geojson", package = "geospaar") %>%   st_read %>% mutate(ID = 1:nrow(.))
+library(ggplot2)
+
+polybox <- function(x, y, w = 0.0025, crs = 4326) {
+  dw <- cbind(c(x - w, x + w, x + w, x - w, x - w),
+              c(y + w, y + w, y - w, y - w, y + w))
+  st_sf(geometry = st_sfc(st_polygon(list(dw))), crs = crs)
+}
+
+set.seed(2)
+site <- ctlg %>% 
+  filter(nflds > 0) %>% 
+  sample_n(1) %>% 
+  select(name, assignment_id, nflds, farea, x, y) %>% 
+  mutate(polybox(x, y)) %>% 
+  st_as_sf()
+
+p <- ggplot() +
+  geom_sf(data = site) +
+  theme_linedraw()
+p
 ```
 
-But we can't do that since we aren't making this as a package... right?
+Digitized Boundaries
+```{r}
+ctlg %>% 
+  mutate(flds = ifelse(nflds > 0, 1, nflds)) %>% 
+  group_by(Class) %>% 
+  summarize(hasflds = sum(flds),
+            noflds = length(flds[flds == 0]))
+
+site_flds <- flds %>% 
+  filter(assignment_id == site$assignment_id)
+site_flds
+
+site
+
+p2 <- p +
+  geom_sf(data = site_flds, fill = "transparent", color = "red", lwd = 0.5)
+p2
+```
+
+Label Uncertainty
+```{r}
+sites_mapped_gt2 <- ctlg %>% 
+  group_by(Class, name) %>% 
+  count() %>% 
+  ungroup() %>% 
+  filter(n > 2)
+
+set.seed(10)
+multi_site <- sites_mapped_gt2 %>% slice(9)
+
+# Clarification: assignments = 'assns'
+multi_site_assns <- ctlg %>% filter(name == multi_site$name)
+
+target <- multi_site_assns %>% 
+  slice(1) %>% 
+  mutate(polybox(x, y)) %>% 
+  st_as_sf()
+
+# rasterize at 224, 224 pixels
+r <- rast(ext(target), nrows = 224, ncols = 224, crs = "EPSG:4326")
+values(r) <- 0
+
+multi_site_assnsr <- lapply(1:nrow(multi_site_assns), function(x) {
+  assn <- multi_site_assns[x, ]
+  if(assn$nflds > 0) {
+    assn_flds <- flds %>%
+      filter(assignment_id == assn$assignment_id)
+    r <- rasterize(assn_flds, r, background = 0)
+  } else {
+    r
+  }
+  return(r)
+}) %>% do.call(c, .)
+
+plot(multi_site_assnsr)
+
+pfield <- app(multi_site_assnsr, sum) / nlyr(multi_site_assnsr)
+plot(pfield)
+```
 
 
 ```{r}
-# Possible approach for the CSV's
-farmers_alb <- read_csv(system.file("extdata/farmer_spatial.csv", package = "geospaar")) %>% 
-  distinct(uuid, x, y, season) %>% 
-  st_as_sf(x = ., coords = c("x", "y"), crs = 4326) %>%
-  st_transform(x = ., crs = st_crs(roads))
-farmers_alb
+thresholds <- seq(0, 1, 0.2)
+reclmat <- data.frame(
+  lower = thresholds[-length(thresholds)],
+  upper = thresholds[-1],
+  index = 1:5,
+  class = c("No field, high confidence", "No field, medium confidence", "Uncertain", "Field, medium confidence", "Field, high confidence")
+)
 
-#t
+conf_class <- classify(pfield, rcl = reclmat[, -4], include.lowest = TRUE)
+
+levels(conf_class) <- reclmat[, 3:4]
+
+plot(conf_class, mar = c(0, 1, 0, 12))
 ```
+
+```{r, warning = FALSE}
+conf_table <- freq(conf_class)
+conf_table
+
+
+nofld <- mask(1 - pfield, pfield < 0.5, maskvalue = 0, updatevalue = 0)
+
+fld <- mask(pfield, pfield >= 0.5, maskvalue = 0, updatevalue = 0)
+
+fld_nofld_conf <- c(fld, nofld, fld + nofld)
+
+names(fld_nofld_conf) <- c("field agreement", "no field agreement", "overall agreement")
+
+plot(fld_nofld_conf, nr = 1)
+
+global(fld_nofld_conf[[3]], mean)
+```
+
