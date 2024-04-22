@@ -15,15 +15,15 @@ Data and Insight
 library(dplyr)
 library(sf)
 library(terra)
-here
+
 data_dir <- here::here("external/afcdata")
 data_dir
 # here::here gives "/home/rstudio/afcfields_/external/afcdata"
 # want "/home/external/afcdata"
 
 # temporary work around
-data_dir <- file.path("~/external/afcdata")
-data_dir
+#data_dir <- file.path("~/external/afcdata")
+#data_dir
 
 flds <- sfarrow::st_read_parquet(
   file.path(data_dir, "mapped_fields_final.parquet"))
@@ -158,3 +158,6 @@ plot(fld_nofld_conf, nr = 1)
 global(fld_nofld_conf[[3]], mean)
 ```
 
+
+Next Tasks:
+# create a for loop that will do this for every single field and then run analyses on that
