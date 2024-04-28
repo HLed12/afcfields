@@ -84,6 +84,7 @@ p2
 
 Label Uncertainty
 ```{r}
+# From pdf for 1 site
 sites_mapped_gt2 <- ctlg %>% 
   group_by(Class, name) %>% 
   count() %>% 
@@ -91,6 +92,7 @@ sites_mapped_gt2 <- ctlg %>%
   filter(n > 2)
 
 set.seed(10)
+# Select the ninth site (you can adjust this as needed)
 multi_site <- sites_mapped_gt2 %>% slice(9)
 
 # Clarification: assignments = 'assns'
@@ -125,6 +127,58 @@ plot(pfield)
 
 
 ```{r}
+############################################################
+
+sites_mapped_gt2_test <- ctlg %>%
+  group_by(Class, name) %>%
+  count() %>%
+  ungroup() %>%
+  filter(n > 2)
+sites_mapped_gt2_test
+
+
+multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
+  multi_site_test <- sites_mapped_gt2 %>% slice(x)
+
+
+
+# Filter the associations for the selected site
+  multi_site_assns_test <- ctlg %>% filter(name == multi_site_test$name)
+
+# Create an empty raster with the same extent as the target site
+  target_test <- multi_site_assns_test %>%
+    slice(1) %>%
+    mutate(polybox(x, y)) %>%
+    st_as_sf()
+
+# Rasterize at 224x224 pixels
+  r_test <- rast(ext(target_test), nrows = 224, ncols = 224, crs = "EPSG:4326")
+  values(r_test) <- 0
+
+# Process each association
+  multi_site_assnsr_test <- lapply(1:nrow(multi_site_assns_test), function(x) {
+    assn_test <- multi_site_assns_test[x, ]
+    if (assn_test$nflds > 0) {
+      assn_flds_test <- flds %>%
+        filter(assignment_id == assn_test$assignment_id)
+      r_test <- rasterize(assn_flds_test, r_test, background = 0)
+    } else {
+      r_test
+    }
+    return(r_test)
+}) %>% do.call(c, .)
+
+  multi_site_list[[x]] <- multi_site_assnsr_test
+})
+
+
+
+
+######################################################################
+
+```
+
+```{r}
 thresholds <- seq(0, 1, 0.2)
 reclmat <- data.frame(
   lower = thresholds[-length(thresholds)],
@@ -133,13 +187,32 @@ reclmat <- data.frame(
   class = c("No field, high confidence", "No field, medium confidence", "Uncertain", "Field, medium confidence", "Field, high confidence")
 )
 
-conf_class <- classify(pfield, rcl = reclmat[, -4], include.lowest = TRUE)
 
-levels(conf_class) <- reclmat[, 3:4]
 
-plot(conf_class, mar = c(0, 1, 0, 12))
+#  pfield_test_list[[x]] <- app(multi_site_list[[x]], sum) / nlyr(multi_site_list[[x]])
+
+# code above wouldn't work, workaround lapply below
+  # create intermediate variables for each site to allow the ratio to work (had errors trying to do it all in one since app doesn't like lists)
+
+pfield_test_list <- lapply(1:length(multi_site_list), function(x) {
+  app_result <- app(multi_site_list[[x]], sum)
+  nlyr_result <- nlyr(multi_site_list[[x]])
+  app_result / nlyr_result
+})
+
+conf_class_list <- lapply(1:length(pfield_test_list), function(x) {
+  classify(pfield_test_list[[x]], rcl = reclmat[, -4], include.lowest = TRUE)
+})
+
+
+lapply(1:length(conf_class_list), function(x) {
+  levels(conf_class_list) <- reclmat[, 3:4]
+})
+
+plot(conf_class_list[[900]], mar = c(0, 1, 0, 12))
+
 ```
-
+#### STILL NEED TO LAPPLY FOR PORTION BELOW!!!
 ```{r, warning = FALSE}
 conf_table <- freq(conf_class)
 conf_table
