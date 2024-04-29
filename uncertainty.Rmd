@@ -17,13 +17,9 @@ library(sf)
 library(terra)
 
 data_dir <- here::here("external/afcdata")
-data_dir
-# here::here gives "/home/rstudio/afcfields_/external/afcdata"
-# want "/home/external/afcdata"
 
 # temporary work around
 #data_dir <- file.path("~/external/afcdata")
-#data_dir
 
 flds <- sfarrow::st_read_parquet(
   file.path(data_dir, "mapped_fields_final.parquet"))
@@ -31,11 +27,12 @@ flds <- sfarrow::st_read_parquet(
 ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
 
-names(ctlg)
+#Data check
+#names(ctlg)
 
-length(unique(ctlg$assignment_id)) == nrow(ctlg)
+#length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
-length(unique(ctlg$name))
+#length(unique(ctlg$name))
 
 ```
 
@@ -84,51 +81,52 @@ p2
 
 Label Uncertainty
 ```{r}
+# OLD CODE
 # From pdf for 1 site
-sites_mapped_gt2 <- ctlg %>% 
-  group_by(Class, name) %>% 
-  count() %>% 
-  ungroup() %>% 
-  filter(n > 2)
+# sites_mapped_gt2 <- ctlg %>% 
+#   group_by(Class, name) %>% 
+#   count() %>% 
+#   ungroup() %>% 
+#   filter(n > 2)
+# 
+# set.seed(10)
+# # Select the ninth site (you can adjust this as needed)
+# multi_site <- sites_mapped_gt2 %>% slice(9)
+# 
+# # Clarification: assignments = 'assns'
+# multi_site_assns <- ctlg %>% filter(name == multi_site$name)
+# 
+# target <- multi_site_assns %>% 
+#   slice(1) %>% 
+#   mutate(polybox(x, y)) %>% 
+#   st_as_sf()
+# 
+# # rasterize at 224, 224 pixels
+# r <- rast(ext(target), nrows = 224, ncols = 224, crs = "EPSG:4326")
+# values(r) <- 0
+# 
+# multi_site_assnsr <- lapply(1:nrow(multi_site_assns), function(x) {
+#   assn <- multi_site_assns[x, ]
+#   if(assn$nflds > 0) {
+#     assn_flds <- flds %>%
+#       filter(assignment_id == assn$assignment_id)
+#     r <- rasterize(assn_flds, r, background = 0)
+#   } else {
+#     r
+#   }
+#   return(r)
+# }) %>% do.call(c, .)
+# 
+# plot(multi_site_assnsr)
 
-set.seed(10)
-# Select the ninth site (you can adjust this as needed)
-multi_site <- sites_mapped_gt2 %>% slice(9)
-
-# Clarification: assignments = 'assns'
-multi_site_assns <- ctlg %>% filter(name == multi_site$name)
-
-target <- multi_site_assns %>% 
-  slice(1) %>% 
-  mutate(polybox(x, y)) %>% 
-  st_as_sf()
-
-# rasterize at 224, 224 pixels
-r <- rast(ext(target), nrows = 224, ncols = 224, crs = "EPSG:4326")
-values(r) <- 0
-
-multi_site_assnsr <- lapply(1:nrow(multi_site_assns), function(x) {
-  assn <- multi_site_assns[x, ]
-  if(assn$nflds > 0) {
-    assn_flds <- flds %>%
-      filter(assignment_id == assn$assignment_id)
-    r <- rasterize(assn_flds, r, background = 0)
-  } else {
-    r
-  }
-  return(r)
-}) %>% do.call(c, .)
-
-plot(multi_site_assnsr)
-
-pfield <- app(multi_site_assnsr, sum) / nlyr(multi_site_assnsr)
-plot(pfield)
+# pfield <- app(multi_site_assnsr, sum) / nlyr(multi_site_assnsr)
+# plot(pfield)
 ```
 
 
 ```{r}
 ############################################################
-
+# NEW CODE
 sites_mapped_gt2_test <- ctlg %>%
   group_by(Class, name) %>%
   count() %>%
@@ -136,11 +134,13 @@ sites_mapped_gt2_test <- ctlg %>%
   filter(n > 2)
 sites_mapped_gt2_test
 
+# t <- list() lapply produces a list so don't need to put results into an indexed list
 
-multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
-  multi_site_test <- sites_mapped_gt2 %>% slice(x)
+#test just 10
+#multi_site_list <- lapply(1:10, function(x) {
 
-
+multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
+  multi_site_test <- sites_mapped_gt2_test %>% slice(x)
 
 # Filter the associations for the selected site
   multi_site_assns_test <- ctlg %>% filter(name == multi_site_test$name)
@@ -151,11 +151,11 @@ multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
     mutate(polybox(x, y)) %>%
     st_as_sf()
 
-# Rasterize at 224x224 pixels
+  # Rasterize at 224x224 pixels
   r_test <- rast(ext(target_test), nrows = 224, ncols = 224, crs = "EPSG:4326")
   values(r_test) <- 0
 
-# Process each association
+  # Process each association
   multi_site_assnsr_test <- lapply(1:nrow(multi_site_assns_test), function(x) {
     assn_test <- multi_site_assns_test[x, ]
     if (assn_test$nflds > 0) {
@@ -166,9 +166,7 @@ multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
       r_test
     }
     return(r_test)
-}) %>% do.call(c, .)
-
-  multi_site_list[[x]] <- multi_site_assnsr_test
+  }) %>% do.call(c, .)
 })
 
 
@@ -209,28 +207,50 @@ lapply(1:length(conf_class_list), function(x) {
   levels(conf_class_list) <- reclmat[, 3:4]
 })
 
-plot(conf_class_list[[900]], mar = c(0, 1, 0, 12))
+#Test
+#plot(conf_class_list[[900]], mar = c(0, 1, 0, 12))
 
 ```
 #### STILL NEED TO LAPPLY FOR PORTION BELOW!!!
 ```{r, warning = FALSE}
-conf_table <- freq(conf_class)
-conf_table
+conf_table_test <- lapply(1:length(conf_class_list), function(x) {
+  freq(conf_class_list[[x]])
+})
+#conf_table <- freq(conf_class)
+#conf_table
+conf_table_test[[2]]
+
+nofld_test <- lapply(1:length(pfield_test_list), function(x) {
+  mask(1 - pfield_test_list[[x]], pfield_test_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
+})
+#nofld <- mask(1 - pfield, pfield < 0.5, maskvalue = 0, updatevalue = 0)
+nofld_test[[2]]
+
+fld_test <- lapply(1:length(pfield_test_list), function(x) {
+  mask(pfield_test_list[[x]], pfield_test_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
+})
+#fld <- mask(pfield, pfield >= 0.5, maskvalue = 0, updatevalue = 0)
+fld_test[[2]]
 
 
-nofld <- mask(1 - pfield, pfield < 0.5, maskvalue = 0, updatevalue = 0)
+fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
+  c(fld_test, nofld_test, fld_test + nofld_test)
+})
+#fld_nofld_conf <- c(fld, nofld, fld + nofld)
+fld_nofld_conf_test[[2]]
 
-fld <- mask(pfield, pfield >= 0.5, maskvalue = 0, updatevalue = 0)
-
-fld_nofld_conf <- c(fld, nofld, fld + nofld)
-
-names(fld_nofld_conf) <- c("field agreement", "no field agreement", "overall agreement")
+lapply(1:length(fld_nofld_conf_test), function(x) {
+  c("field agreement", "no field agreement", "overall agreement")
+})
+#names(fld_nofld_conf) <- c("field agreement", "no field agreement", "overall agreement")
 
 plot(fld_nofld_conf, nr = 1)
 
 global(fld_nofld_conf[[3]], mean)
+??global
+#fld_nofld_conf[[3]], mean
 ```
 
 
 Next Tasks:
-# create a for loop that will do this for every single field and then run analyses on that
+# create a boxplot for analysis
