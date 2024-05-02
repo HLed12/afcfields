@@ -233,9 +233,14 @@ fld_test <- lapply(1:length(pfield_test_list), function(x) {
 fld_test[[2]]
 
 
-fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
-  c(fld_test, nofld_test, fld_test + nofld_test)
+#fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
+#  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
+#})
+
+fld_nofld_conf_test <- lapply(1:4, function(x) {
+  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
 })
+
 #fld_nofld_conf <- c(fld, nofld, fld + nofld)
 fld_nofld_conf_test[[2]]
 
@@ -244,13 +249,15 @@ lapply(1:length(fld_nofld_conf_test), function(x) {
 })
 #names(fld_nofld_conf) <- c("field agreement", "no field agreement", "overall agreement")
 
-plot(fld_nofld_conf, nr = 1)
+plot(fld_nofld_conf[[2]], nr = 1)
 
-global(fld_nofld_conf[[3]], mean)
-??global
+global(fld_nofld_conf[[3]], mean) # shows the mean overall agreement!
 #fld_nofld_conf[[3]], mean
 ```
 
 
 Next Tasks:
 # create a boxplot for analysis
+```{r}
+
+```
