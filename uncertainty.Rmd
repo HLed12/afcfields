@@ -36,77 +36,59 @@ polybox <- function(x, y, w = 0.0025, crs = 4326) {
   st_sf(geometry = st_sfc(st_polygon(list(dw))), crs = crs)
 }
 
-set.seed(2)
-site <- ctlg %>% 
-  filter(nflds > 0) %>% 
-  sample_n(1) %>% 
-  select(name, assignment_id, nflds, farea, x, y) %>% 
-  mutate(polybox(x, y)) %>% 
-  st_as_sf()
-
-p <- ggplot() +
-  geom_sf(data = site) +
-  theme_linedraw()
-p
+# set.seed(2)
+# site <- ctlg %>% 
+#   filter(nflds > 0) %>% 
+#   sample_n(1) %>% 
+#   select(name, assignment_id, nflds, farea, x, y) %>% 
+#   mutate(polybox(x, y)) %>% 
+#   st_as_sf()
+# 
+# p <- ggplot() +
+#   geom_sf(data = site) +
+#   theme_linedraw()
+# p
 ```
 
-Digitized Boundaries
-```{r}
-ctlg %>% 
-  mutate(flds = ifelse(nflds > 0, 1, nflds)) %>% 
-  group_by(Class) %>% 
-  summarize(hasflds = sum(flds),
-            noflds = length(flds[flds == 0]))
-
-site_flds <- flds %>% 
-  filter(assignment_id == site$assignment_id)
-site_flds
-
-site
-
-p2 <- p +
-  geom_sf(data = site_flds, fill = "transparent", color = "red", lwd = 0.5)
-p2
-```
 
 Label Uncertainty
 ```{r}
-sites_mapped_gt2_test <- ctlg %>%
+sites_mapped_gt2 <- ctlg %>%
   group_by(Class, name) %>%
   count() %>%
   ungroup() %>%
   filter(n > 2)
-sites_mapped_gt2_test
+sites_mapped_gt2
 
 multi_site_list <- lapply(1:100, function(x) {
-#multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
+#multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
   
-  multi_site_test <- sites_mapped_gt2_test %>% slice(x)
+  multi_site <- sites_mapped_gt2 %>% slice(x)
 
 # Filter the associations for the selected site
-  multi_site_assns_test <- ctlg %>% filter(name == multi_site_test$name)
+  multi_site_assns <- ctlg %>% filter(name == multi_site$name)
 
 # Create an empty raster with the same extent as the target site
-  target_test <- multi_site_assns_test %>%
+  target <- multi_site_assns %>%
     slice(1) %>%
     mutate(polybox(x, y)) %>%
     st_as_sf()
 
   # Rasterize at 224x224 pixels
-  r_test <- rast(ext(target_test), nrows = 224, ncols = 224, crs = "EPSG:4326")
-  values(r_test) <- 0
+  r <- rast(ext(target), nrows = 224, ncols = 224, crs = "EPSG:4326")
+  values(r) <- 0
 
   # Process each association
-  multi_site_assnsr_test <- lapply(1:nrow(multi_site_assns_test), function(x) {
-    assn_test <- multi_site_assns_test[x, ]
-    if (assn_test$nflds > 0) {
-      assn_flds_test <- flds %>%
-        filter(assignment_id == assn_test$assignment_id)
-      r_test <- rasterize(assn_flds_test, r_test, background = 0)
+  multi_site_assnsr <- lapply(1:nrow(multi_site_assns), function(x) {
+    assn <- multi_site_assns[x, ]
+    if (assn$nflds > 0) {
+      assn_flds <- flds %>%
+        filter(assignment_id == assn$assignment_id)
+      r <- rasterize(assn_flds, r, background = 0)
     } else {
-      r_test
+      r
     }
-    return(r_test)
+    return(r)
   }) %>% do.call(c, .)
 })
 ```
@@ -122,14 +104,14 @@ reclmat <- data.frame(
 )
 
 
-pfield_test_list <- lapply(1:length(multi_site_list), function(x) {
+pfield_list <- lapply(1:length(multi_site_list), function(x) {
   app_result <- app(multi_site_list[[x]], sum)
   nlyr_result <- nlyr(multi_site_list[[x]])
   app_result / nlyr_result
 })
 
-conf_class_list <- lapply(1:length(pfield_test_list), function(x) {
-  classify(pfield_test_list[[x]], rcl = reclmat[, -4], include.lowest = TRUE)
+conf_class_list <- lapply(1:length(pfield_list), function(x) {
+  classify(pfield_list[[x]], rcl = reclmat[, -4], include.lowest = TRUE)
 })
 
 # levels() from pdf doesn't work for lapply but categories() does
@@ -142,79 +124,101 @@ conf_class_list <- lapply(1:length(conf_class_list), function(x) {
 
 Calculations + Formatting
 ```{r, warning = FALSE}
-conf_table_test <- lapply(1:length(conf_class_list), function(x) {
+conf_table <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
 })
-#conf_table_test[[9]]
+#conf_table[[9]]
 
 
-nofld_test <- lapply(1:length(pfield_test_list), function(x) {
-  mask(1 - pfield_test_list[[x]], pfield_test_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
+nofld <- lapply(1:length(pfield_list), function(x) {
+  mask(1 - pfield_list[[x]], pfield_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
 })
-#nofld_test[[2]]
+#nofld[[2]]
 
-fld_test <- lapply(1:length(pfield_test_list), function(x) {
-  mask(pfield_test_list[[x]], pfield_test_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
-})
-# mcLapply attempt below, did not help!
-#fld_test <- mclapply(1:length(pfield_test_list), function(x) {
-#  mask(pfield_test_list[[x]], pfield_test_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
-#}, mc.cores = 4)
-#fld_test[[2]]
-
-
-fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
-  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
+fld <- lapply(1:length(pfield_list), function(x) {
+  mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 })
 # mcLapply attempt below, did not help!
-#fld_nofld_conf_test <- mclapply(1:length(fld_test), function(x) {
-#  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
+#fld <- mclapply(1:length(pfield_list), function(x) {
+#  mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 #}, mc.cores = 4)
-#fld_nofld_conf_test[[9]]
+#fld[[2]]
 
-fld_nofld_conf_test <- lapply(1:length(fld_nofld_conf_test), function(x) {
-  names(fld_nofld_conf_test[[x]]) <- c("field agreement", "no field agreement", "overall agreement")
-  return(fld_nofld_conf_test[[x]])
+
+fld_nofld_conf <- lapply(1:length(fld), function(x) {
+  c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
 })
-#fld_nofld_conf_test[[9]]
+# mcLapply attempt below, did not help!
+#fld_nofld_conf <- mclapply(1:length(fld), function(x) {
+#  c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
+#}, mc.cores = 4)
+#fld_nofld_conf[[9]]
+
+fld_nofld_conf <- lapply(1:length(fld_nofld_conf), function(x) {
+  names(fld_nofld_conf[[x]]) <- c("field agreement", "no field agreement", "overall agreement")
+  return(fld_nofld_conf[[x]])
+})
+#fld_nofld_conf[[9]]
 
 
-#plot(fld_nofld_conf_test[[9]], nr = 1)
+#plot(fld_nofld_conf[[9]], nr = 1)
 
-#global(fld_nofld_conf_test[[9]][[3]], mean)
+#global(fld_nofld_conf[[9]][[3]], mean)
 ```
 
 Example Site
 ```{r}
 set.seed(9)
-#plot(conf_class_list[[9]], mar = c(0, 1, 0, 12)) # fix colors or disgard
 
-conf_table_test[[9]]
+conf_table[[9]] #insight to the counts for the site
 
-#fld_nofld_conf_test[[9]]
+plot(fld_nofld_conf[[9]], nr = 1)
+```
 
-plot(fld_nofld_conf_test[[9]], nr = 1)
+For this site, we see that the field agreement averaged to:
+```{r}
+global(fld_nofld_conf[[9]][[1]], mean)
+```
+The no field agreement averaged to:
+```{r}
+global(fld_nofld_conf[[9]][[2]], mean)
+```
 
-global(fld_nofld_conf_test[[9]][[3]], mean)
+It is important to understand what the percentages mean. 
+0 represents no field. 1 represents a field.
+The closer to 0, the more overall agreement on land not being a field.
 
-# explain that 72.6% are agreement of field or no-field. 
+The closer to 1, the more overall agreement on land being a field.
+
+Knowing the average overall agreement does not provide as much insight as usual
+averages would. Due to the data, knowing where the average overall agreement 
+lies on a 0-1 scale simply informs if the site tends to have more crop fields
+than non-crop fields. i.e.,
+```{r}
+global(fld_nofld_conf[[9]][[3]], mean)
+```
+Above 0.5 means the site is likely to be mostly crop fields, vice-versa if below.
 ```
 
 
 Summary Analysis
 ```{r}
-site_means <- lapply(1:length(fld_nofld_conf_test), function(x) {
-  global(fld_nofld_conf_test[[x]][[3]], mean)
+all_site_fldmeans <- lapply(1:length(fld_nofld_conf), function(x) {
+  global(fld_nofld_conf[[x]][[1]], mean)
 })
 
-overall_mean <- mean(unlist(site_means))
-overall_mean
+all_site_nofldmeans <- lapply(1:length(fld_nofld_conf), function(x) {
+  global(fld_nofld_conf[[x]][[2]], mean)
+})
+
+overall_dataset_mean <- mean(unlist(all_site_means))
+overall_dataset_mean
 # explain the range.
 
-boxplot(unlist(site_means))
+boxplot(unlist(all_site_means))
 # do a boxplot for fields, for non-fields and their agreement for each respectively
 # how hard it is to determine a field vs non-field
+
+fld[[3]]
 ```
 
-
-Need to rename variables, remove "test" from all.
