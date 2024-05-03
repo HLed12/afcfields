@@ -11,9 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Data and Insight
 ```{r, eval=FALSE}
+
 library(dplyr)
 library(sf)
 library(terra)
+library(ggplot2)
 
 data_dir <- here::here("external/afcdata")
 
@@ -57,75 +59,56 @@ p
 
 ```
 
-# Calculating areas
-```{r, eval=FALSE}
 
-#long form
+# Average field area by country
+```{r, eval=FALSE, copy=TRUE}
 
-flds %>%
-st_transform("ESRI:102022") %>%
-mutate(area = as.numeric(st_area(.)) / 10000) %>%
-st_transform(4326)
-
-#fields totally inside the box could be selected using the x, y coordinates to find the nearest field
-
-site_xy <- site %>%
-st_drop_geometry() %>% # dropping the polygon we made first
-st_as_sf(coords = c("x", "y"), crs = 4326) # make back into spatial point
-nearest_fld <- site_flds %>% slice(st_nearest_feature(site_xy, .))
-p2 +
-geom_sf(data = nearest_fld, fill = "blue") +
-geom_sf(data = site_xy, col = "orange")
-
-
-
-```
-
-By country
-
-```{r, eval=FALSE}
-
-ctlg %>%
-mutate(cntry = substr(name, 1, 2)) %>% # get country prefix from name
-group_by(cntry) %>%
-count() %>% View()
-
-```
-
-Averages by country
-```{r, eval=FALSE}
-
+  
+cntries <- geodata::country_codes() %>%
+      filter(continent == "Africa") %>%
+  
 ctry_mean <- ctlg %>%
 mutate(cntry = substr(name, 1, 2)) %>%
-select(name, cntry, farea) %>%
 group_by(cntry) %>%
 summarize(farea = mean(farea, na.rm = TRUE))
-left_join(ctry_mean, cntries, by = c("cntry" = "ISO2"))
-
-```
 
 
-# In Progress 
-```{r, false=EVAL}
-cntries <- geodata::country_codes() %>%
-     filter(continent == "Africa") %>%
-  
-  ggplot() +
-  geom_map(data = africamap, map = africamap,
-           aes(map_id = ID), color = "white", fill = "darkblue") +
-  geom_map(data = result, map = africamap,
-           aes(fill = farea, map_id = ISO3), color = "black") +
-  scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey") +
-  theme_void()
+# ctry_mean_farea <- ctlg %>%
+#   mutate(cntry = substr(name, 1, 2)) %>%
+#   group_by(cntry) %>%
+#   summarize(mean_farea = mean(farea, na.rm = TRUE))
 
-ctry_size_mean <- ctlg %>%
+result_country <- left_join(ctry_mean_farea, cntries, by = c("cntry" = "ISO2"))
+
+ctlg %>%
   mutate(cntry = substr(name, 1, 2)) %>%
-  mutate(size = lubridate::size(image_date)) %>%
-  group_by(cntry, size) %>%
-  summarize(farea = mean(farea, na.rm = TRUE))
+  group_by(cntry) %>%
+  count() %>%
+  View()
+
+
+
+  
+  # ggplot() +
+  # geom_map(data = africamap, map = africamap,
+  #          aes(map_id = ID), color = "black", fill = "white") +
+  # geom_map(data = result, map = africamap,
+  #          aes(fill = farea, map_id = ISO3), color = "black") +
+  # scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey") +
+  # theme_void()
+
+
+
+ggplot(result_country, aes(x = NAME, y = farea, fill = NAME)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Field Area by Country",
+       x = "Country", y = "Average Field Area") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set1")
+
+
 ```
-
-
 
 
 
