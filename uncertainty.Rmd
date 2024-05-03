@@ -19,22 +19,11 @@ library(parallel)
 
 data_dir <- here::here("external/afcdata")
 
-# temporary work around
-#data_dir <- file.path("~/external/afcdata")
-
 flds <- sfarrow::st_read_parquet(
   file.path(data_dir, "mapped_fields_final.parquet"))
 
 ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
-
-#Data check
-#names(ctlg)
-
-#length(unique(ctlg$assignment_id)) == nrow(ctlg)
-
-#length(unique(ctlg$name))
-
 ```
 
 Spatial Features/Characteristics
@@ -90,8 +79,8 @@ sites_mapped_gt2_test <- ctlg %>%
 sites_mapped_gt2_test
 
 multi_site_list <- lapply(1:100, function(x) {
-
 #multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
+  
   multi_site_test <- sites_mapped_gt2_test %>% slice(x)
 
 # Filter the associations for the selected site
@@ -122,6 +111,7 @@ multi_site_list <- lapply(1:100, function(x) {
 })
 ```
 
+Calculations
 ```{r}
 thresholds <- seq(0, 1, 0.2)
 reclmat <- data.frame(
@@ -142,7 +132,7 @@ conf_class_list <- lapply(1:length(pfield_test_list), function(x) {
   classify(pfield_test_list[[x]], rcl = reclmat[, -4], include.lowest = TRUE)
 })
 
-# levels doesn't work but categories does
+# levels() from pdf doesn't work for lapply but categories() does
 conf_class_list <- lapply(1:length(conf_class_list), function(x) {
   categories(conf_class_list[[x]], value = reclmat[, 3:4])
 })
@@ -150,6 +140,7 @@ conf_class_list <- lapply(1:length(conf_class_list), function(x) {
 #plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
 ```
 
+Calculations + Formatting
 ```{r, warning = FALSE}
 conf_table_test <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
@@ -196,19 +187,21 @@ fld_nofld_conf_test <- lapply(1:length(fld_nofld_conf_test), function(x) {
 Example Site
 ```{r}
 set.seed(9)
-plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
+#plot(conf_class_list[[9]], mar = c(0, 1, 0, 12)) # fix colors or disgard
 
 conf_table_test[[9]]
 
-fld_nofld_conf_test[[9]]
+#fld_nofld_conf_test[[9]]
 
 plot(fld_nofld_conf_test[[9]], nr = 1)
 
 global(fld_nofld_conf_test[[9]][[3]], mean)
+
+# explain that 72.6% are agreement of field or no-field. 
 ```
 
 
-Overall Analysis
+Summary Analysis
 ```{r}
 site_means <- lapply(1:length(fld_nofld_conf_test), function(x) {
   global(fld_nofld_conf_test[[x]][[3]], mean)
@@ -216,6 +209,12 @@ site_means <- lapply(1:length(fld_nofld_conf_test), function(x) {
 
 overall_mean <- mean(unlist(site_means))
 overall_mean
+# explain the range.
 
 boxplot(unlist(site_means))
+# do a boxplot for fields, for non-fields and their agreement for each respectively
+# how hard it is to determine a field vs non-field
 ```
+
+
+Need to rename variables, remove "test" from all.
