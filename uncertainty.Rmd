@@ -15,6 +15,7 @@ Data and Insight
 library(dplyr)
 library(sf)
 library(terra)
+library(parallel)
 
 data_dir <- here::here("external/afcdata")
 
@@ -81,52 +82,6 @@ p2
 
 Label Uncertainty
 ```{r}
-# OLD CODE
-# From pdf for 1 site
-# sites_mapped_gt2 <- ctlg %>% 
-#   group_by(Class, name) %>% 
-#   count() %>% 
-#   ungroup() %>% 
-#   filter(n > 2)
-# 
-# set.seed(10)
-# # Select the ninth site (you can adjust this as needed)
-# multi_site <- sites_mapped_gt2 %>% slice(9)
-# 
-# # Clarification: assignments = 'assns'
-# multi_site_assns <- ctlg %>% filter(name == multi_site$name)
-# 
-# target <- multi_site_assns %>% 
-#   slice(1) %>% 
-#   mutate(polybox(x, y)) %>% 
-#   st_as_sf()
-# 
-# # rasterize at 224, 224 pixels
-# r <- rast(ext(target), nrows = 224, ncols = 224, crs = "EPSG:4326")
-# values(r) <- 0
-# 
-# multi_site_assnsr <- lapply(1:nrow(multi_site_assns), function(x) {
-#   assn <- multi_site_assns[x, ]
-#   if(assn$nflds > 0) {
-#     assn_flds <- flds %>%
-#       filter(assignment_id == assn$assignment_id)
-#     r <- rasterize(assn_flds, r, background = 0)
-#   } else {
-#     r
-#   }
-#   return(r)
-# }) %>% do.call(c, .)
-# 
-# plot(multi_site_assnsr)
-
-# pfield <- app(multi_site_assnsr, sum) / nlyr(multi_site_assnsr)
-# plot(pfield)
-```
-
-
-```{r}
-############################################################
-# NEW CODE
 sites_mapped_gt2_test <- ctlg %>%
   group_by(Class, name) %>%
   count() %>%
@@ -134,12 +89,9 @@ sites_mapped_gt2_test <- ctlg %>%
   filter(n > 2)
 sites_mapped_gt2_test
 
-# t <- list() lapply produces a list so don't need to put results into an indexed list
+multi_site_list <- lapply(1:100, function(x) {
 
-#test just 10
-#multi_site_list <- lapply(1:10, function(x) {
-
-multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
+#multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
   multi_site_test <- sites_mapped_gt2_test %>% slice(x)
 
 # Filter the associations for the selected site
@@ -168,12 +120,6 @@ multi_site_list <- lapply(1:nrow(sites_mapped_gt2_test), function(x) {
     return(r_test)
   }) %>% do.call(c, .)
 })
-
-
-
-
-######################################################################
-
 ```
 
 ```{r}
@@ -186,12 +132,6 @@ reclmat <- data.frame(
 )
 
 
-
-#  pfield_test_list[[x]] <- app(multi_site_list[[x]], sum) / nlyr(multi_site_list[[x]])
-
-# code above wouldn't work, workaround lapply below
-  # create intermediate variables for each site to allow the ratio to work (had errors trying to do it all in one since app doesn't like lists)
-
 pfield_test_list <- lapply(1:length(multi_site_list), function(x) {
   app_result <- app(multi_site_list[[x]], sum)
   nlyr_result <- nlyr(multi_site_list[[x]])
@@ -202,62 +142,80 @@ conf_class_list <- lapply(1:length(pfield_test_list), function(x) {
   classify(pfield_test_list[[x]], rcl = reclmat[, -4], include.lowest = TRUE)
 })
 
-
-lapply(1:length(conf_class_list), function(x) {
-  levels(conf_class_list) <- reclmat[, 3:4]
+# levels doesn't work but categories does
+conf_class_list <- lapply(1:length(conf_class_list), function(x) {
+  categories(conf_class_list[[x]], value = reclmat[, 3:4])
 })
 
-#Test
-#plot(conf_class_list[[900]], mar = c(0, 1, 0, 12))
-
+#plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
 ```
-#### STILL NEED TO LAPPLY FOR PORTION BELOW!!!
+
 ```{r, warning = FALSE}
 conf_table_test <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
 })
-#conf_table <- freq(conf_class)
-#conf_table
-conf_table_test[[2]]
+#conf_table_test[[9]]
+
 
 nofld_test <- lapply(1:length(pfield_test_list), function(x) {
   mask(1 - pfield_test_list[[x]], pfield_test_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
 })
-#nofld <- mask(1 - pfield, pfield < 0.5, maskvalue = 0, updatevalue = 0)
-nofld_test[[2]]
+#nofld_test[[2]]
 
 fld_test <- lapply(1:length(pfield_test_list), function(x) {
   mask(pfield_test_list[[x]], pfield_test_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 })
-#fld <- mask(pfield, pfield >= 0.5, maskvalue = 0, updatevalue = 0)
-fld_test[[2]]
+# mcLapply attempt below, did not help!
+#fld_test <- mclapply(1:length(pfield_test_list), function(x) {
+#  mask(pfield_test_list[[x]], pfield_test_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
+#}, mc.cores = 4)
+#fld_test[[2]]
 
 
-#fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
-#  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
-#})
-
-fld_nofld_conf_test <- lapply(1:4, function(x) {
+fld_nofld_conf_test <- lapply(1:length(fld_test), function(x) {
   c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
 })
+# mcLapply attempt below, did not help!
+#fld_nofld_conf_test <- mclapply(1:length(fld_test), function(x) {
+#  c(fld_test[[x]], nofld_test[[x]], fld_test[[x]] + nofld_test[[x]])
+#}, mc.cores = 4)
+#fld_nofld_conf_test[[9]]
 
-#fld_nofld_conf <- c(fld, nofld, fld + nofld)
-fld_nofld_conf_test[[2]]
-
-lapply(1:length(fld_nofld_conf_test), function(x) {
-  c("field agreement", "no field agreement", "overall agreement")
+fld_nofld_conf_test <- lapply(1:length(fld_nofld_conf_test), function(x) {
+  names(fld_nofld_conf_test[[x]]) <- c("field agreement", "no field agreement", "overall agreement")
+  return(fld_nofld_conf_test[[x]])
 })
-#names(fld_nofld_conf) <- c("field agreement", "no field agreement", "overall agreement")
+#fld_nofld_conf_test[[9]]
 
-plot(fld_nofld_conf[[2]], nr = 1)
 
-global(fld_nofld_conf[[3]], mean) # shows the mean overall agreement!
-#fld_nofld_conf[[3]], mean
+#plot(fld_nofld_conf_test[[9]], nr = 1)
+
+#global(fld_nofld_conf_test[[9]][[3]], mean)
+```
+
+Example Site
+```{r}
+set.seed(9)
+plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
+
+conf_table_test[[9]]
+
+fld_nofld_conf_test[[9]]
+
+plot(fld_nofld_conf_test[[9]], nr = 1)
+
+global(fld_nofld_conf_test[[9]][[3]], mean)
 ```
 
 
-Next Tasks:
-# create a boxplot for analysis
+Overall Analysis
 ```{r}
+site_means <- lapply(1:length(fld_nofld_conf_test), function(x) {
+  global(fld_nofld_conf_test[[x]][[3]], mean)
+})
 
+overall_mean <- mean(unlist(site_means))
+overall_mean
+
+boxplot(unlist(site_means))
 ```
