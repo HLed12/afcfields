@@ -101,6 +101,19 @@ ggplot() +
   theme_void()
 ```
 
+Averages by Country by Year
+
+```{r, eval=FALSE}
+ctry_year_mean <- ctlg %>%
+  mutate(cntry = substr(name, 1, 2),
+         year = lubridate::year(image_date)) %>%
+  group_by(cntry, year) %>%
+  summarize(farea = mean(farea, na.rm = TRUE))
+
+#Join with country codes
+result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
+```
+
 Join with country codes
 
 ```{r, eval=FALSE}
@@ -113,19 +126,6 @@ ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
   theme_minimal() +
   theme(legend.position = "bottom") +
   scale_color_brewer(palette = "Set1")
-```
-
-Averages by Country by Year
-
-```{r, eval=FALSE}
-ctry_year_mean <- ctlg %>%
-  mutate(cntry = substr(name, 1, 2),
-         year = lubridate::year(image_date)) %>%
-  group_by(cntry, year) %>%
-  summarize(farea = mean(farea, na.rm = TRUE))
-
-#Join with country codes
-result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 ```
 
 Grouping by country and year and calculating mean field area
