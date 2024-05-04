@@ -1,12 +1,16 @@
 Package: afcfields
-Title: What the Package Does (One Line, Title Case)
+Title: Africa Crop Fields Analysis
 Version: 0.0.0.9000
 Author: afcfields group
 Maintainer: Harry Leduc <hleduc@clarku.edu>
-Description: Team includes: Espi Garschina-Bobrow, Moses Milman, and Harry Leduc.
+Description: Team includes: Espi Garschina-Bobrow, Moses Millman, and Harry Leduc.
     Project revolves around African Crop Field dataset. We measure uncertainty
-    for mapping fields, average field size by country, and a rolling period of
-    average field sizes.
+    for mapping fields, average field size by country, and an annual
+    average field size by country. Data was given by Lyndon Estes. Data is on local
+    machines due to data size. Please review vignettes_html for 
+    analysis results. If have access to the data, within the project directory,
+    there is an additional 'external/afcdata/'. All data is located inside
+    afcdata. 
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8

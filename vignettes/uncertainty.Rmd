@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-Data and Insight
+# Data Import and Insight
 ```{r}
 library(dplyr)
 library(sf)
@@ -26,7 +26,7 @@ ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
 ```
 
-Spatial Features/Characteristics
+# Spatial Features/Characteristics
 ```{r}
 library(ggplot2)
 
@@ -35,23 +35,10 @@ polybox <- function(x, y, w = 0.0025, crs = 4326) {
               c(y + w, y + w, y - w, y - w, y + w))
   st_sf(geometry = st_sfc(st_polygon(list(dw))), crs = crs)
 }
-
-# set.seed(2)
-# site <- ctlg %>% 
-#   filter(nflds > 0) %>% 
-#   sample_n(1) %>% 
-#   select(name, assignment_id, nflds, farea, x, y) %>% 
-#   mutate(polybox(x, y)) %>% 
-#   st_as_sf()
-# 
-# p <- ggplot() +
-#   geom_sf(data = site) +
-#   theme_linedraw()
-# p
 ```
 
 
-Label Uncertainty
+# Label Uncertainty
 ```{r}
 sites_mapped_gt2 <- ctlg %>%
   group_by(Class, name) %>%
@@ -93,7 +80,7 @@ multi_site_list <- lapply(1:100, function(x) {
 })
 ```
 
-Calculations
+# Calculations
 ```{r}
 thresholds <- seq(0, 1, 0.2)
 reclmat <- data.frame(
@@ -122,7 +109,7 @@ conf_class_list <- lapply(1:length(conf_class_list), function(x) {
 #plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
 ```
 
-Calculations + Formatting
+# Calculations + Formatting
 ```{r, warning = FALSE}
 conf_table <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
@@ -166,11 +153,12 @@ fld_nofld_conf <- lapply(1:length(fld_nofld_conf), function(x) {
 #global(fld_nofld_conf[[9]][[3]], mean)
 ```
 
-Example Site
+# Example Site
 ```{r}
 set.seed(9)
 
-conf_table[[9]] #insight to the counts for the site
+#insight to the counts for the site
+conf_table[[9]]
 
 plot(fld_nofld_conf[[9]], nr = 1)
 ```
@@ -179,6 +167,7 @@ For this site, we see that the field agreement averaged to:
 ```{r}
 global(fld_nofld_conf[[9]][[1]], mean)
 ```
+
 The no field agreement averaged to:
 ```{r}
 global(fld_nofld_conf[[9]][[2]], mean)
@@ -198,10 +187,10 @@ than non-crop fields. i.e.,
 global(fld_nofld_conf[[9]][[3]], mean)
 ```
 Above 0.5 means the site is likely to be mostly crop fields, vice-versa if below.
-```
 
 
-Summary Analysis
+
+# Summary Analysis
 ```{r}
 all_site_fldmeans <- lapply(1:length(fld_nofld_conf), function(x) {
   global(fld_nofld_conf[[x]][[1]], mean)
