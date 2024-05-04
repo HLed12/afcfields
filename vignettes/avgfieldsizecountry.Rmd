@@ -73,11 +73,6 @@ group_by(cntry) %>%
 summarize(farea = mean(farea, na.rm = TRUE))
 
 
-# ctry_mean_farea <- ctlg %>%
-#   mutate(cntry = substr(name, 1, 2)) %>%
-#   group_by(cntry) %>%
-#   summarize(mean_farea = mean(farea, na.rm = TRUE))
-
 result_country <- left_join(ctry_mean_farea, cntries, by = c("cntry" = "ISO2"))
 
 ctlg %>%
@@ -85,18 +80,6 @@ ctlg %>%
   group_by(cntry) %>%
   count() %>%
   View()
-
-
-
-  
-  # ggplot() +
-  # geom_map(data = africamap, map = africamap,
-  #          aes(map_id = ID), color = "black", fill = "white") +
-  # geom_map(data = result, map = africamap,
-  #          aes(fill = farea, map_id = ISO3), color = "black") +
-  # scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey") +
-  # theme_void()
-
 
 
 ggplot(result_country, aes(x = NAME, y = farea, fill = NAME)) +
@@ -110,5 +93,5 @@ ggplot(result_country, aes(x = NAME, y = farea, fill = NAME)) +
 
 ```
 
-
+This calculates the mean field area for each country by counting the number of records per country in the dataset.A bar plot is generated mapping the country names and mean field area. 
 
