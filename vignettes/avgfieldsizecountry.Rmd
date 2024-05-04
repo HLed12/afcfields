@@ -30,6 +30,8 @@ length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
 length(unique(ctlg$name))
 
+#reading in data 
+
 ```
 
 # Spatial Characteristics
@@ -51,10 +53,13 @@ site <- ctlg %>%
      mutate(polybox(x, y)) %>%
      st_as_sf()
 
+#sample plot 
+
 p <- ggplot() +
   geom_sf(data = site) +
   theme_linedraw()
 p
+
 
 
 ```
@@ -74,6 +79,8 @@ summarize(farea = mean(farea, na.rm = TRUE))
 
 
 result_country <- left_join(ctry_mean_farea, cntries, by = c("cntry" = "ISO2"))
+
+#result_country is used as country data to map the country names
 
 ctlg %>%
   mutate(cntry = substr(name, 1, 2)) %>%
