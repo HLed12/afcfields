@@ -9,14 +9,16 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-# Data Import and Insight
-```{r}
+#### Libraries
+```{r, message = FALSE}
 library(dplyr)
 library(sf)
 library(terra)
 library(parallel)
+```
 
+#### Data Import and Insight
+```{r, message = FALSE}
 data_dir <- here::here("external/afcdata")
 
 flds <- sfarrow::st_read_parquet(
@@ -26,10 +28,8 @@ ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
 ```
 
-# Spatial Features/Characteristics
+#### Spatial Features/Characteristics
 ```{r}
-library(ggplot2)
-
 polybox <- function(x, y, w = 0.0025, crs = 4326) {
   dw <- cbind(c(x - w, x + w, x + w, x - w, x - w),
               c(y + w, y + w, y - w, y - w, y + w))
@@ -38,8 +38,9 @@ polybox <- function(x, y, w = 0.0025, crs = 4326) {
 ```
 
 
-# Label Uncertainty
+#### Label Uncertainty
 ```{r}
+# Adjust data to only include sites where at least 3 people measured
 sites_mapped_gt2 <- ctlg %>%
   group_by(Class, name) %>%
   count() %>%
@@ -78,9 +79,10 @@ multi_site_list <- lapply(1:100, function(x) {
     return(r)
   }) %>% do.call(c, .)
 })
+head(multi_site_list)
 ```
 
-# Calculations
+#### Calculations
 ```{r}
 thresholds <- seq(0, 1, 0.2)
 reclmat <- data.frame(
@@ -105,22 +107,18 @@ conf_class_list <- lapply(1:length(pfield_list), function(x) {
 conf_class_list <- lapply(1:length(conf_class_list), function(x) {
   categories(conf_class_list[[x]], value = reclmat[, 3:4])
 })
-
-#plot(conf_class_list[[9]], mar = c(0, 1, 0, 12))
 ```
 
-# Calculations + Formatting
-```{r, warning = FALSE}
+#### Calculations + Formatting
+```{r}
 conf_table <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
 })
-#conf_table[[9]]
-
+head(conf_table)
 
 nofld <- lapply(1:length(pfield_list), function(x) {
   mask(1 - pfield_list[[x]], pfield_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
 })
-#nofld[[2]]
 
 fld <- lapply(1:length(pfield_list), function(x) {
   mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
@@ -129,8 +127,6 @@ fld <- lapply(1:length(pfield_list), function(x) {
 #fld <- mclapply(1:length(pfield_list), function(x) {
 #  mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 #}, mc.cores = 4)
-#fld[[2]]
-
 
 fld_nofld_conf <- lapply(1:length(fld), function(x) {
   c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
@@ -139,22 +135,15 @@ fld_nofld_conf <- lapply(1:length(fld), function(x) {
 #fld_nofld_conf <- mclapply(1:length(fld), function(x) {
 #  c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
 #}, mc.cores = 4)
-#fld_nofld_conf[[9]]
 
 fld_nofld_conf <- lapply(1:length(fld_nofld_conf), function(x) {
   names(fld_nofld_conf[[x]]) <- c("field agreement", "no field agreement", "overall agreement")
   return(fld_nofld_conf[[x]])
 })
-#fld_nofld_conf[[9]]
-
-
-#plot(fld_nofld_conf[[9]], nr = 1)
-
-#global(fld_nofld_conf[[9]][[3]], mean)
 ```
 
-# Example Site
-```{r}
+#### Example Site
+```{r,  fig.width=10, fig.height=8, fig.align = "center"}
 set.seed(9)
 
 #insight to the counts for the site
@@ -174,10 +163,12 @@ global(fld_nofld_conf[[9]][[2]], mean)
 ```
 
 It is important to understand what the percentages mean. 
-0 represents no field. 1 represents a field.
-The closer to 0, the more overall agreement on land not being a field.
+0.00 represents no field. 1.00 represents a field.
+The closer to 0, the more overall agreement on land NOT being a field.
 
 The closer to 1, the more overall agreement on land being a field.
+Therefore, for a site to have the least uncertainty, you would want field agreement
+to be above 0.90. And no field agreement to be below 0.10. 
 
 Knowing the average overall agreement does not provide as much insight as usual
 averages would. Due to the data, knowing where the average overall agreement 
@@ -187,27 +178,40 @@ than non-crop fields. i.e.,
 global(fld_nofld_conf[[9]][[3]], mean)
 ```
 Above 0.5 means the site is likely to be mostly crop fields, vice-versa if below.
+But overall, this is not a meaningful data point.
 
 
 
-# Summary Analysis
-```{r}
-all_site_fldmeans <- lapply(1:length(fld_nofld_conf), function(x) {
+#### Summary Analysis
+```{r, fig.width=6, fig.height=4, fig.align = "center"}
+all_fld_means <- lapply(1:length(fld_nofld_conf), function(x) {
   global(fld_nofld_conf[[x]][[1]], mean)
 })
+head(all_fld_means)
 
-all_site_nofldmeans <- lapply(1:length(fld_nofld_conf), function(x) {
+all_nofld_means <- lapply(1:length(fld_nofld_conf), function(x) {
   global(fld_nofld_conf[[x]][[2]], mean)
 })
+head(all_nofld_means)
 
-overall_dataset_mean <- mean(unlist(all_site_means))
-overall_dataset_mean
-# explain the range.
-
-boxplot(unlist(all_site_means))
-# do a boxplot for fields, for non-fields and their agreement for each respectively
-# how hard it is to determine a field vs non-field
-
-fld[[3]]
+par(mfrow = c(1, 2))
+boxplot(unlist(all_fld_means), outline = TRUE, border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
+boxplot(unlist(all_nofld_means), outline = TRUE, border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
 ```
+From this subset, it seems that agreement for a field was more difficult throughout sites than agreement for not a field. An explanation could be outliers. Some sites were completely field-free, resulting in the field agreement being 0 and dragging the overall mean down to a lower score. And the reverse for no field agreements at 1 and bringing overall mean up.
 
+
+#### Summary Analysis Removed Extreme Outliers
+```{r, fig.width=6, fig.height=4, fig.align = "center"}
+outlier <- c(0, 1)
+all_fld_out <- setdiff(unlist(all_fld_means), outlier)
+head(all_fld_out)
+
+all_nofld_out <- setdiff(unlist(all_nofld_means), outlier)
+head(all_nofld_out)
+
+par(mfrow = c(1, 2))
+boxplot(all_fld_out, outline = TRUE, names = "No Field Agreement Mean", border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
+boxplot(all_nofld_out, outline = TRUE, names = "Field Agreement Mean", border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
+```
+Here is the results if we remove sites that are completely field or no field.
