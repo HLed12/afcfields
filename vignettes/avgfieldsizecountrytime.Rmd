@@ -68,30 +68,30 @@ library(maps)
 site_flds <- flds %>% filter(assignment_id == site$assignment_id)
 site_flds
 
-# Mutate cntry and year
+#Mutate cntry and year
 ctlg <- ctlg %>%
      mutate(cntry = substr(name, 1, 2)) %>%  
      mutate(year = lubridate::year(image_date)) 
 
-# Group by cntry and year and count
+#Group by cntry and year and count
 ctlg_grouped <- ctlg %>%
      group_by(cntry, year) %>%
      count() 
 
-# View the result
+#View the result
 View(ctlg_grouped)
 
-# Filter countries in Africa from the country codes data
+#Filter countries in Africa from the country codes data
 cntries <- geodata::country_codes() %>%
      filter(continent == "Africa")
 
-# Calculate average field area by country
+#Calculate average field area by country
 ctry_mean <- ctlg %>%
   select(name, cntry, farea) %>%
   group_by(cntry) %>%
   summarize(farea = mean(farea, na.rm = TRUE))
 
-# Plot the map
+#Plot the map
 ggplot() +
   geom_map(data = africamap, map = africamap,
            aes(map_id = ID), color = "black", fill = "white") +
@@ -124,7 +124,7 @@ ctry_year_mean <- ctlg %>%
   group_by(cntry, year) %>%
   summarize(farea = mean(farea, na.rm = TRUE))
 
-# Join with country codes
+#Join with country codes
 result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 ```
 
@@ -137,6 +137,6 @@ ctry_year_mean <- ctlg %>%
   group_by(cntry, year) %>%
   summarize(farea = mean(farea, na.rm = TRUE))
 
-# Joining with country code data
+#Joining with country code data
 left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 ```
