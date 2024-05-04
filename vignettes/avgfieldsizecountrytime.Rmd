@@ -1,14 +1,17 @@
 ---
-title: "uncertainty"
+title: "AvgFieldSizeCountryTime"
 author: "Moses Millman"
 date: "2024-04-16"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-
 knitr::opts_chunk$set(echo = TRUE)
+```
 
+Data and Insight
+
+```{r, eval=FALSE} 
 library(dplyr)
 library(sf)
 library(terra)
@@ -25,7 +28,12 @@ ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
   
 names(ctlg)
+```
 
+Spatial Characteristics
+
+```{r, eval=FALSE}
+library(ggplot2)
 
 length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
@@ -43,30 +51,47 @@ site <- ctlg %>%
      mutate(polybox(x, y)) %>%
      st_as_sf()
 
-p <- ggplot() +
-  geom_sf(data = site) +
-  theme_linedraw()
+p <- ggplot() + geom_sf(data = site) + theme_linedraw()
+
 p
+```
 
+Averages by Country
+
+```{r, eval=FALSE}
+#Load the packages
+library(geodata)
+library(maps)
+
+
+#Averages by Country
 site_flds <- flds %>% filter(assignment_id == site$assignment_id)
-   site_flds
+site_flds
 
-ctlg %>%
-     mutate(cntry = substr(name, 1, 2)) %>%  # get country prefix from name
-     mutate(year = lubridate::year(image_date)) %>% # get year from image_date
+# Mutate cntry and year
+ctlg <- ctlg %>%
+     mutate(cntry = substr(name, 1, 2)) %>%  
+     mutate(year = lubridate::year(image_date)) 
+
+# Group by cntry and year and count
+ctlg_grouped <- ctlg %>%
      group_by(cntry, year) %>%
-     count() %>% View()
+     count() 
 
+# View the result
+View(ctlg_grouped)
+
+# Filter countries in Africa from the country codes data
 cntries <- geodata::country_codes() %>%
-     filter(continent == "Africa") %>%
-  
+     filter(continent == "Africa")
+
+# Calculate average field area by country
 ctry_mean <- ctlg %>%
-  mutate(cntry = substr(name, 1, 2)) %>%
   select(name, cntry, farea) %>%
   group_by(cntry) %>%
   summarize(farea = mean(farea, na.rm = TRUE))
 
-
+# Plot the map
 ggplot() +
   geom_map(data = africamap, map = africamap,
            aes(map_id = ID), color = "black", fill = "white") +
@@ -74,14 +99,11 @@ ggplot() +
            aes(fill = farea, map_id = ISO3), color = "black") +
   scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey") +
   theme_void()
+```
 
-ctry_year_mean <- ctlg %>%
-  mutate(cntry = substr(name, 1, 2)) %>%
-  mutate(year = lubridate::year(image_date)) %>%
-  group_by(cntry, year) %>%
-  summarize(farea = mean(farea, na.rm = TRUE))
+Join with country codes
 
-# Join with country codes
+```{r, eval=FALSE}
 result_year <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 
 ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
@@ -91,4 +113,30 @@ ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
   theme_minimal() +
   theme(legend.position = "bottom") +
   scale_color_brewer(palette = "Set1")
+```
+
+Averages by Country by Year
+
+```{r, eval=FALSE}
+ctry_year_mean <- ctlg %>%
+  mutate(cntry = substr(name, 1, 2),
+         year = lubridate::year(image_date)) %>%
+  group_by(cntry, year) %>%
+  summarize(farea = mean(farea, na.rm = TRUE))
+
+# Join with country codes
+result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
+```
+
+Grouping by country and year and calculating mean field area
+
+```{r, eval=FALSE}
+ctry_year_mean <- ctlg %>%
+  mutate(cntry = substr(name, 1, 2),
+         year = lubridate::year(image_date)) %>%
+  group_by(cntry, year) %>%
+  summarize(farea = mean(farea, na.rm = TRUE))
+
+# Joining with country code data
+left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 ```
