@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Data and Insight
+# Data and Insight
 
 ```{r, eval=FALSE} 
 library(dplyr)
@@ -30,7 +30,7 @@ ctlg <- readr::read_csv(
 names(ctlg)
 ```
 
-Spatial Characteristics
+# Spatial Characteristics
 
 ```{r, eval=FALSE}
 library(ggplot2)
@@ -56,7 +56,7 @@ p <- ggplot() + geom_sf(data = site) + theme_linedraw()
 p
 ```
 
-Averages by Country
+# Averages by Country
 
 ```{r, eval=FALSE}
 #Load the packages
@@ -101,7 +101,7 @@ ggplot() +
   theme_void()
 ```
 
-Averages by Country by Year
+# Averages by Country by Year
 
 ```{r, eval=FALSE}
 ctry_year_mean <- ctlg %>%
@@ -114,7 +114,7 @@ ctry_year_mean <- ctlg %>%
 result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 ```
 
-Join with country codes
+# Join with country codes
 
 ```{r, eval=FALSE}
 result_year <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
@@ -128,7 +128,7 @@ ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
   scale_color_brewer(palette = "Set1")
 ```
 
-Grouping by country and year and calculating mean field area
+# Grouping by country and year and calculating mean field area
 
 ```{r, eval=FALSE}
 ctry_year_mean <- ctlg %>%
