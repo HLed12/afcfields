@@ -18,7 +18,7 @@ library(terra)
 library(parallel)
 ```
 
-#### Data Import and Insight
+#### Data Import
 ```{r, message = FALSE}
 data_dir <- here::here("external/afcdata")
 
@@ -29,7 +29,7 @@ ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
 ```
 
-#### Spatial Features/Characteristics
+#### Spatial Features
 ```{r}
 polybox <- function(x, y, w = 0.0025, crs = 4326) {
   dw <- cbind(c(x - w, x + w, x + w, x - w, x - w),
@@ -52,7 +52,7 @@ sites_mapped_gt2
 # Must use subset or else breaks computer. Several mclapply statements are 
 # commented out in case they will benefit future user.
 # Line below (56) has code for entire dataset.
-multi_site_list <- lapply(1:500, function(x) {
+multi_site_list <- lapply(1:800, function(x) {
 #multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
   
   multi_site <- sites_mapped_gt2 %>% slice(x)
@@ -83,6 +83,7 @@ multi_site_list <- lapply(1:500, function(x) {
     return(r)
   }) %>% do.call(c, .)
 })
+# a list of rasters for each site
 head(multi_site_list)
 ```
 
@@ -144,10 +145,8 @@ fld_nofld_conf <- lapply(1:length(fld_nofld_conf), function(x) {
 ```
 
 #### Example Site
-```{r,  fig.width=10, fig.height=8, fig.align = "center"}
-set.seed(9)
-
-#insight to the counts for the site
+```{r,  fig.width=10, fig.height=6, fig.align = "center"}
+#insight to the number of pixels (counts) in each category for the site
 conf_table[[9]]
 
 plot(fld_nofld_conf[[9]], nr = 1)
@@ -183,7 +182,9 @@ But overall, this is not a meaningful data point.
 
 
 
-#### Summary Analysis
+#### Entire Dataset Analysis
+all_fld_means and all_nofld_means (below) both create a list with every sites
+average agreement for field and no field respectively.
 ```{r, fig.width=6, fig.height=4, fig.align = "center"}
 all_fld_means <- lapply(1:length(fld_nofld_conf), function(x) {
   global(fld_nofld_conf[[x]][[1]], mean)
@@ -196,14 +197,17 @@ all_nofld_means <- lapply(1:length(fld_nofld_conf), function(x) {
 head(all_nofld_means)
 
 par(mfrow = c(1, 2))
-boxplot(unlist(all_fld_means), outline = TRUE, border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
-boxplot(unlist(all_nofld_means), outline = TRUE, border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
+boxplot(unlist(all_fld_means), outline = TRUE, border = "blue", 
+        main = "Field Agreement Means", ylim = c(0, 1))
+boxplot(unlist(all_nofld_means), outline = TRUE, border = "red", 
+        main = "No Field Agreement Means", ylim = c(0, 1))
 ```
-From this subset, it seems that agreement for a field was more difficult throughout sites than agreement for not a field. We will test below if extreme outliers are the cause of this.
+From this subset, it seems that agreement for a field did not vary from
+agreement for a non-field. We will test below if extreme outliers impact this.
 
 
-The results if we remove sites that are completely field or no field (0 or 1).
 ```{r, fig.width=6, fig.height=4, fig.align = "center"}
+# The results if we remove sites that are completely field or no field (0 or 1).
 outlier <- c(0, 1)
 all_fld_out <- setdiff(unlist(all_fld_means), outlier)
 head(all_fld_out)
@@ -212,8 +216,10 @@ all_nofld_out <- setdiff(unlist(all_nofld_means), outlier)
 head(all_nofld_out)
 
 par(mfrow = c(1, 2))
-boxplot(all_fld_out, outline = TRUE, names = "No Field Agreement Mean", border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
-boxplot(all_nofld_out, outline = TRUE, names = "Field Agreement Mean", border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
+boxplot(all_fld_out, outline = TRUE, border = "blue", 
+        main = "Field Agreement Means", ylim = c(0, 1))
+boxplot(all_nofld_out, outline = TRUE, border = "red", 
+        main = "No Field Agreement Means", ylim = c(0, 1))
 
 # with extreme outliers (Field Agreement Mean)
 all_fld_means_mean <- mean(unlist(all_fld_means))
@@ -231,5 +237,6 @@ all_nofld_means_mean
 all_nofld_out_mean <- mean(unlist(all_nofld_out))
 all_nofld_out_mean
 ```
-This shows that the extreme scenarios make an impact, but not a large one. Agreement
-for a field is still more difficult for these sites.
+This shows that the extreme scenarios make an impact, but not a large one. 
+Since both agreement types are similar, it can be assumed that it is equally
+difficult to determine if a pixel is field or not field.
