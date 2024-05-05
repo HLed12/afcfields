@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 #### Libraries
 ```{r, message = FALSE}
 library(dplyr)
@@ -48,7 +49,10 @@ sites_mapped_gt2 <- ctlg %>%
   filter(n > 2)
 sites_mapped_gt2
 
-multi_site_list <- lapply(1:100, function(x) {
+# Must use subset or else breaks computer. Several mclapply statements are 
+# commented out in case they will benefit future user.
+# Line below (56) has code for entire dataset.
+multi_site_list <- lapply(1:500, function(x) {
 #multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
   
   multi_site <- sites_mapped_gt2 %>% slice(x)
@@ -114,7 +118,6 @@ conf_class_list <- lapply(1:length(conf_class_list), function(x) {
 conf_table <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
 })
-head(conf_table)
 
 nofld <- lapply(1:length(pfield_list), function(x) {
   mask(1 - pfield_list[[x]], pfield_list[[x]] < 0.5, maskvalue = 0, updatevalue = 0)
@@ -123,7 +126,6 @@ nofld <- lapply(1:length(pfield_list), function(x) {
 fld <- lapply(1:length(pfield_list), function(x) {
   mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 })
-# mcLapply attempt below, did not help!
 #fld <- mclapply(1:length(pfield_list), function(x) {
 #  mask(pfield_list[[x]], pfield_list[[x]] >= 0.5, maskvalue = 0, updatevalue = 0)
 #}, mc.cores = 4)
@@ -131,7 +133,6 @@ fld <- lapply(1:length(pfield_list), function(x) {
 fld_nofld_conf <- lapply(1:length(fld), function(x) {
   c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
 })
-# mcLapply attempt below, did not help!
 #fld_nofld_conf <- mclapply(1:length(fld), function(x) {
 #  c(fld[[x]], nofld[[x]], fld[[x]] + nofld[[x]])
 #}, mc.cores = 4)
@@ -198,10 +199,10 @@ par(mfrow = c(1, 2))
 boxplot(unlist(all_fld_means), outline = TRUE, border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
 boxplot(unlist(all_nofld_means), outline = TRUE, border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
 ```
-From this subset, it seems that agreement for a field was more difficult throughout sites than agreement for not a field. An explanation could be outliers. Some sites were completely field-free, resulting in the field agreement being 0 and dragging the overall mean down to a lower score. And the reverse for no field agreements at 1 and bringing overall mean up.
+From this subset, it seems that agreement for a field was more difficult throughout sites than agreement for not a field. We will test below if extreme outliers are the cause of this.
 
 
-#### Summary Analysis Removed Extreme Outliers
+The results if we remove sites that are completely field or no field (0 or 1).
 ```{r, fig.width=6, fig.height=4, fig.align = "center"}
 outlier <- c(0, 1)
 all_fld_out <- setdiff(unlist(all_fld_means), outlier)
@@ -213,5 +214,22 @@ head(all_nofld_out)
 par(mfrow = c(1, 2))
 boxplot(all_fld_out, outline = TRUE, names = "No Field Agreement Mean", border = "blue", main = "Field Agreement Means", ylim = c(0, 1))
 boxplot(all_nofld_out, outline = TRUE, names = "Field Agreement Mean", border = "red", main = "No Field Agreement Means", ylim = c(0, 1))
+
+# with extreme outliers (Field Agreement Mean)
+all_fld_means_mean <- mean(unlist(all_fld_means))
+all_fld_means_mean
+
+# without extreme outliers (Field Agreement Mean)
+all_fld_out_mean <- mean(unlist(all_fld_out))
+all_fld_out_mean
+
+# with extreme outliers (No Field Agreement Mean)
+all_nofld_means_mean <- mean(unlist(all_nofld_means))
+all_nofld_means_mean
+
+# without extreme outliers (No Field Agreement Mean)
+all_nofld_out_mean <- mean(unlist(all_nofld_out))
+all_nofld_out_mean
 ```
-Here is the results if we remove sites that are completely field or no field.
+This shows that the extreme scenarios make an impact, but not a large one. Agreement
+for a field is still more difficult for these sites.
