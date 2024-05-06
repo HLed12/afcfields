@@ -184,6 +184,12 @@ and a parquet file. It is important to have the files;
 'mapped_fields_final.parquet' all be under the afcdata folder. DO NOT create another
 subfolder for them (this is okay to do, and preferred, for the images and labels).
 
+### 10. Clone Our Repo
+
+```bash
+ https://github.com/HLed12/afcfields.git
+  ```
+
  ### Special Thanks
 
 We would like acknowledge the people who made this project possible. @ldemaz for providing the data and the tools to make conduct this project and @vanchy-li for her commitment to our success and the long hours of fixing our projects major issues. Thank you both! 
