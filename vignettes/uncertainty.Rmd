@@ -9,17 +9,29 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Reproducability Statement
 
-#### Libraries
-```{r, message = FALSE}
+This code is for a subset of the data. Due to computer limitations, it only
+analyzes 800 of the desired sites. The code for the entire data set is commented
+out. Several mclapply statements are commented out in case they will benefit future
+user computation speed as well. MUST uncomment 'library(parallel)' if mclapply is 
+utilized. Both mclapply's and the lapply for the whole dataset are commented 
+out BENEATH the object declaration. 
+
+Make sure to switch the '#' with the original object declaration, if you choose 
+to utilize the whole dataset or mclapply's.
+
+
+# Libraries
+```{r, message= FALSE}
 library(dplyr)
 library(sf)
 library(terra)
-library(parallel)
+#library(parallel)  if choose to use mclapply statements
 ```
 
-#### Data Import
-```{r, message = FALSE}
+# Data Import
+```{r, message= FALSE}
 data_dir <- here::here("external/afcdata")
 
 flds <- sfarrow::st_read_parquet(
@@ -29,7 +41,7 @@ ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
 ```
 
-#### Spatial Features
+# Spatial Features
 ```{r}
 polybox <- function(x, y, w = 0.0025, crs = 4326) {
   dw <- cbind(c(x - w, x + w, x + w, x - w, x - w),
@@ -39,7 +51,7 @@ polybox <- function(x, y, w = 0.0025, crs = 4326) {
 ```
 
 
-#### Label Uncertainty
+# Label Uncertainty
 ```{r}
 # Adjust data to only include sites where at least 3 people measured
 sites_mapped_gt2 <- ctlg %>%
@@ -49,9 +61,8 @@ sites_mapped_gt2 <- ctlg %>%
   filter(n > 2)
 sites_mapped_gt2
 
-# Must use subset or else breaks computer. Several mclapply statements are 
-# commented out in case they will benefit future user.
-# Line below (56) has code for entire dataset.
+# Subset: 800 sites. Switch '#' between Line 63 and 64 for entire dataset.
+# Creates a list of rasters for each site
 multi_site_list <- lapply(1:800, function(x) {
 #multi_site_list <- lapply(1:nrow(sites_mapped_gt2), function(x) {
   
@@ -83,11 +94,11 @@ multi_site_list <- lapply(1:800, function(x) {
     return(r)
   }) %>% do.call(c, .)
 })
-# a list of rasters for each site
-head(multi_site_list)
+# a few elements of the list
+head(multi_site_list)[3:5]
 ```
 
-#### Calculations
+# Calculations
 ```{r}
 thresholds <- seq(0, 1, 0.2)
 reclmat <- data.frame(
@@ -114,7 +125,7 @@ conf_class_list <- lapply(1:length(conf_class_list), function(x) {
 })
 ```
 
-#### Calculations + Formatting
+# Calculations + Formatting
 ```{r}
 conf_table <- lapply(1:length(conf_class_list), function(x) {
   freq(conf_class_list[[x]])
@@ -144,8 +155,8 @@ fld_nofld_conf <- lapply(1:length(fld_nofld_conf), function(x) {
 })
 ```
 
-#### Example Site
-```{r,  fig.width=10, fig.height=6, fig.align = "center"}
+# Example Site
+```{r,  fig.width=10, fig.height=4, fig.align = "center"}
 #insight to the number of pixels (counts) in each category for the site
 conf_table[[9]]
 
@@ -182,7 +193,7 @@ But overall, this is not a meaningful data point.
 
 
 
-#### Entire Dataset Analysis
+# Entire Dataset Analysis
 all_fld_means and all_nofld_means (below) both create a list with every sites
 average agreement for field and no field respectively.
 ```{r, fig.width=6, fig.height=4, fig.align = "center"}
@@ -237,6 +248,10 @@ all_nofld_means_mean
 all_nofld_out_mean <- mean(unlist(all_nofld_out))
 all_nofld_out_mean
 ```
+
 This shows that the extreme scenarios make an impact, but not a large one. 
-Since both agreement types are similar, it can be assumed that it is equally
-difficult to determine if a pixel is field or not field.
+
+Both agreement types are similarly spread out. Overall, determining a piece of 
+land as field is not more difficult than determining if it is not a field. 
+They can be equally challenging or simple, depending on the piece of land being
+reviewed. 

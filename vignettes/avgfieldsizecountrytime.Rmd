@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Data and Insight
 
-```{r, eval=FALSE} 
+```{r, message= FALSE} 
 library(dplyr)
 library(sf)
 library(terra)
@@ -21,23 +21,19 @@ data_dir <- here::here("external/afcdata")
 
 flds <- sfarrow::st_read_parquet(
      file.path(data_dir, "mapped_fields_final.parquet"))
-
-data_dir
    
 ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
-  
-names(ctlg)
 ```
 
 # Spatial Characteristics
 
-```{r, eval=FALSE}
+```{r, message= FALSE}
 library(ggplot2)
 
 length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
- polybox <- function(x, y, w = 0.0025, crs = 4326) {
+polybox <- function(x, y, w = 0.0025, crs = 4326) {
      dw <- cbind(c(x - w, x + w, x + w, x - w, x - w),
                  c(y + w, y + w, y - w, y - w, y + w))
      st_sf(geometry = st_sfc(st_polygon(list(dw))), crs = crs)
@@ -50,15 +46,11 @@ site <- ctlg %>%
      select(name, assignment_id, nflds, farea, x, y) %>%
      mutate(polybox(x, y)) %>%
      st_as_sf()
-
-p <- ggplot() + geom_sf(data = site) + theme_linedraw()
-
-p
 ```
 
 # Averages by Country
 
-```{r, eval=FALSE}
+```{r, message= FALSE}
 #Load the packages
 library(geodata)
 library(maps)
@@ -66,7 +58,6 @@ library(maps)
 
 #Averages by Country
 site_flds <- flds %>% filter(assignment_id == site$assignment_id)
-site_flds
 
 #Mutate cntry and year
 ctlg <- ctlg %>%
@@ -78,9 +69,6 @@ ctlg_grouped <- ctlg %>%
      group_by(cntry, year) %>%
      count() 
 
-#View the result
-View(ctlg_grouped)
-
 #Filter countries in Africa from the country codes data
 cntries <- geodata::country_codes() %>%
      filter(continent == "Africa")
@@ -90,20 +78,11 @@ ctry_mean <- ctlg %>%
   select(name, cntry, farea) %>%
   group_by(cntry) %>%
   summarize(farea = mean(farea, na.rm = TRUE))
-
-#Plot the map
-ggplot() +
-  geom_map(data = africamap, map = africamap,
-           aes(map_id = ID), color = "black", fill = "white") +
-  geom_map(data = result, map = africamap,
-           aes(fill = farea, map_id = ISO3), color = "black") +
-  scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey") +
-  theme_void()
 ```
 
 # Averages by Country by Year
 
-```{r, eval=FALSE}
+```{r, warning= FALSE, fig.width=10}
 ctry_year_mean <- ctlg %>%
   mutate(cntry = substr(name, 1, 2),
          year = lubridate::year(image_date)) %>%
@@ -112,11 +91,20 @@ ctry_year_mean <- ctlg %>%
 
 #Join with country codes
 result <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
+
+#Plot
+ggplot(result, aes(x = year, y = farea, group = NAME, color = NAME)) +
+  geom_line() +
+  labs(title = "Average Field Area Over Time by Country",
+       x = "Year", y = "Average Field Area") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  scale_fill_manual(values=c("#FFCC00", "#FF9900", "#FF6600", "#FF3300", "#CC9900", "#FFCC66", "#FF9966", "#FF6633", "#CC3300", "#CC0033", "#FF0033", "#FF3366", "#FF6699", "#FF66CC", "#990033", "#FF6666", "#CC6666", "#996666", "#663333", "#CC9999", "#CC6699", "#660033", "#660066", "#663366", "#CC99CC", "#996699", "#CC99FF", "#9966CC", "#663399", "#6600CC", "#660099", "#9933CC", "#330099", "#666699", "#333399", "#3333FF", "#003399", "#006699", "#000066"))
 ```
 
 # Join with country codes
 
-```{r, eval=FALSE}
+```{r, warning= FALSE, fig.width=10}
 result_year <- left_join(ctry_year_mean, cntries, by = c("cntry" = "ISO2"))
 
 ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
@@ -125,12 +113,12 @@ ggplot(result_year, aes(x = year, y = farea, group = NAME, color = NAME)) +
        x = "Year", y = "Average Field Area") +
   theme_minimal() +
   theme(legend.position = "bottom") +
-  scale_color_brewer(palette = "Set1")
+  scale_fill_manual(values=c("#FFCC00", "#FF9900", "#FF6600", "#FF3300", "#CC9900", "#FFCC66", "#FF9966", "#FF6633", "#CC3300", "#CC0033", "#FF0033", "#FF3366", "#FF6699", "#FF66CC", "#990033", "#FF6666", "#CC6666", "#996666", "#663333", "#CC9999", "#CC6699", "#660033", "#660066", "#663366", "#CC99CC", "#996699", "#CC99FF", "#9966CC", "#663399", "#6600CC", "#660099", "#9933CC", "#330099", "#666699", "#333399", "#3333FF", "#003399", "#006699", "#000066"))
 ```
 
 # Grouping by country and year and calculating mean field area
 
-```{r, eval=FALSE}
+```{r, message= FALSE}
 ctry_year_mean <- ctlg %>%
   mutate(cntry = substr(name, 1, 2),
          year = lubridate::year(image_date)) %>%

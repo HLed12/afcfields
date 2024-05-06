@@ -10,8 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Data and Insight
-```{r, eval=FALSE}
-
+```{r, message= FALSE}
 library(dplyr)
 library(sf)
 library(terra)
@@ -24,18 +23,15 @@ flds <- sfarrow::st_read_parquet(
 
 ctlg <- readr::read_csv(
   file.path(data_dir, "label_catalog_allclasses.csv"))
+```
+
+# Spatial Characteristics
+```{r}
 names(ctlg)
 
 length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
 length(unique(ctlg$name))
-
-#reading in data 
-
-```
-
-# Spatial Characteristics
-```{r, eval=FALSE}
 
 length(unique(ctlg$assignment_id)) == nrow(ctlg)
 
@@ -59,34 +55,30 @@ p <- ggplot() +
   geom_sf(data = site) +
   theme_linedraw()
 p
-
-
-
 ```
 
 
 # Average field area by country
-```{r, eval=FALSE, copy=TRUE}
-
-  
+```{r, copy=TRUE}
 cntries <- geodata::country_codes() %>%
       filter(continent == "Africa") %>%
-  
-ctry_mean <- ctlg %>%
-mutate(cntry = substr(name, 1, 2)) %>%
-group_by(cntry) %>%
-summarize(farea = mean(farea, na.rm = TRUE))
+      select(ISO2, ISO3, NAME)
+
+ctry_mean_farea <- ctlg %>%
+      mutate(cntry = substr(name, 1, 2)) %>%
+      group_by(cntry) %>%
+      summarize(farea = mean(farea, na.rm = TRUE))
 
 
 result_country <- left_join(ctry_mean_farea, cntries, by = c("cntry" = "ISO2"))
 
 #result_country is used as country data to map the country names
 
-ctlg %>%
+result_country_view <- ctlg %>%
   mutate(cntry = substr(name, 1, 2)) %>%
   group_by(cntry) %>%
-  count() %>%
-  View()
+  count
+result_country_view
 
 
 ggplot(result_country, aes(x = NAME, y = farea, fill = NAME)) +
@@ -94,11 +86,8 @@ ggplot(result_country, aes(x = NAME, y = farea, fill = NAME)) +
   labs(title = "Average Field Area by Country",
        x = "Country", y = "Average Field Area") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_brewer(palette = "Set1")
-
-
+  theme(axis.text.x = element_blank()) +
+  scale_fill_manual(values=c("#99CC00", "#CCFF00", "#99FF00", "#66FF00", "#33FF00", "#006600", "#336633", "#66CC66", "#33CC00", "#339900", "#66CC00", "#996600", "#669900", "#666633", "#99CC33", "#666600", "#999900", "#999966", "#99CC66", "#66FF66", "#99FF99", "#CCFFCC", "#FFCC99", "#FF9933", "#CC6600", "#333300", "#CC9966", "#663300", "#996633", "#993300", "#996600", "#CC6633", "#CC9933", "#FF9966", "#FFCC66", "#FFCC33", "#CC9900", "#330000", "#663333"))
 ```
 
 This calculates the mean field area for each country by counting the number of records per country in the dataset.A bar plot is generated mapping the country names and mean field area. 
-
