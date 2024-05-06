@@ -32,7 +32,7 @@ We can use tidyr in case we want to do any pivot_widers or csv manipulations
 
 Our code will be split into three sections. We will need to map uncertainty throughout sites, find average field sizes by region, and find trends in the field sizes over several years.
 
-# Geospatial Analysis with R
+# AFCFields
 
 This is the repository for Clark University's Geospatial Analysis with R course (GEOG 246/346). The data for this project was provided by Professor Estes through a Google Drive.
 
