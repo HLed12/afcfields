@@ -38,7 +38,9 @@ This is the repository for Clark University's Geospatial Analysis with R course 
 
 ## Installation (Steps to Copy Our Set Up)
 
-The course materials can be installed as a standard `R` package, using a desktop Rstudio installation (or another IDE), or within a `docker` container. For the standalone case, you can simply install the course package from your Rstudio Desktop (or similar IDE) installation (which assumes you have the `devtools` package installed), per step 7 below. 
+The following set up is based on how we set this project. The following code assumes that you are following the steps to set up for Geog246/346 Geospaar package. 
+
+The course materials being referenced to can be installed as a standard `R` package, using a desktop Rstudio installation (or another IDE), or within a `docker` container. For the standalone case, you can simply install the course package from your Rstudio Desktop (or similar IDE) installation (which assumes you have the `devtools` package installed), per step 7 below. 
 
 The dockerized approach, which will be followed for the full class, provides a consistent environment, making it less susceptible to the idiosyncrasies of different operating systems. The same container environment will be used for developing `R` packages for class assignments and projects. More detail on working with `docker` can be found in the materials for [Advanced Geospatial Analysis with Python](https://hamedalemo.github.io/advanced-geo-python/lectures/docker.html), taught by Professor Alemohammad. For now we will just use it for installing course materials. Please follow these steps to get started. 
 
@@ -51,11 +53,6 @@ If you are enrolled in this course, also get a [personal access token](https://h
 - Go into your GitHub account, and click settings, and then (on the left)  developer settings 
 - Select personal access tokens
 - Generate a new token (classic), name it something meaningful, and check the "repo" box
-
-<p align="center">
-  <img width="793" height="328" src="vignettes/fig/pat4.png">
-</p>
-
 - Copy the token and paste it somewhere safe (e.g. a secure password manager) 
 
 ### 2. If you are a Windows users, install a Linux terminal emulator
@@ -173,6 +170,23 @@ For people launching the container from Git Bash, there are some additional step
 10. Next, run `git status`. It should show a bunch of files have been modified. If it does, run:
   `git stash`, followed again by `git status`. It should show no changes to the repo.  Try `git pull`, which should that you are be up to date. This should be working now
 
+
+### 9. Project Data Input
+
+After receiving access to the data. Download/Unzip into a folder called "afcdata".
+In your project directory create the following file path with the data:
+```
+external/afcdata/
+```
+within afcdata there should be two folders, label and image, along with two csv files
+and a parquet file. It is important to have the files;
+'label_catalog_allclasses.csv', 'label_catalog_filtered.csv', and
+'mapped_fields_final.parquet' all be under the afcdata folder. DO NOT create another
+subfolder for them (this is okay to do, and preferred, for the images and labels).
+
+ ### Special Thanks
+
+We would like acknowledge the people who made this project possible. @ldemaz for providing the data and the tools to make conduct this project and @vanchy-li for her commitment to our success and the long hours of fixing our projects major issues. Thank you both! 
 
 On the web:
 Thanks to @LLeiSong, the materials are also available through the [course website](https://agroimpacts.github.io/geospaar/).
