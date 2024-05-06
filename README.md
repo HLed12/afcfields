@@ -192,7 +192,7 @@ subfolder for them (this is okay to do, and preferred, for the images and labels
 
  ### Special Thanks
 
-We would like acknowledge the people who made this project possible. @ldemaz for providing the data and the tools to make conduct this project and @vanchy-li for her commitment to our success and the long hours of fixing our projects major issues. Thank you both! 
+We would like acknowledge the people who made this project possible. @ldemaz for providing the data, tools, and knowledge to make this project and @vanchy-li for her commitment to our success and the long hours of fixing our projects major issues. Thank you both! 
 
 On the web:
-Thanks to @LLeiSong, the materials are also available through the [course website](https://agroimpacts.github.io/geospaar/).
+Also thanks to @LLeiSong, the materials are also available through the [course website](https://agroimpacts.github.io/geospaar/).
